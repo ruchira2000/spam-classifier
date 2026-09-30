@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spam Classifier</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Email / SMS Spam Classifier</h1>
+    <p class="subtitle">TF-IDF + Linear SVM, 98.9% accuracy on the SMS Spam Collection dataset.</p>
+
+    <textarea id="messageInput" placeholder="Paste a message to check..."></textarea>
+    <button id="checkBtn">Check message</button>
+
+    <div id="result" class="result hidden">
+      <span id="resultLabel" class="label"></span>
+      <span id="resultConfidence" class="confidence"></span>
+    </div>
+  </div>
+
+  <script>
+    const btn = document.getElementById("checkBtn");
+    const input = document.getElementById("messageInput");
+    const result = document.getElementById("result");
+    const labelEl = document.getElementById("resultLabel");
+    const confEl = document.getElementById("resultConfidence");
+
+    btn.addEventListener("click", async () => {
+      const message = input.value.trim();
+      if (!message) return;
+
+      btn.disabled = true;
+      btn.textContent = "Checking...";
+
+      const res = await fetch("/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+      const data = await res.json();
+
+      result.classList.remove("hidden", "spam", "ham");
+      result.classList.add(data.label);
+      labelEl.textContent = data.label.toUpperCase();
+      confEl.textContent = "";
+
+      btn.disabled = false;
+      btn.textContent = "Check message";
+    });
+  </script>
+</body>
+</html>
