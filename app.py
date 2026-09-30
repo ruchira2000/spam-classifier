@@ -4,6 +4,8 @@ sys.path.insert(0, "src")
 from preprocess import clean_text
 
 from flask import Flask, render_template, request, jsonify
+import nltk
+nltk.download("stopwords")
 
 app = Flask(__name__)
 
@@ -32,4 +34,4 @@ def predict():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
