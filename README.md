@@ -1,6 +1,8 @@
 # Email & SMS Spam Classifier
 
-From a raw text message to a spam or ham decision, in real time, through a trained ML pipeline served by a Flask web app.
+**[Try it live](https://spam-classifier-rmtk.onrender.com)** (free tier, may take 20-30 seconds to wake up if it's been idle)
+
+From a raw text message to a spam or ham decision, in real time, through a trained ML pipeline served by a Flask web app deployed on Render.
 
 This project takes 5,572 real SMS messages, cleans and vectorizes the text, trains and compares two classification models, and serves the best one through a live web interface where you can paste any message and get an instant prediction.
 
@@ -14,7 +16,7 @@ Raw message
    |-- 3. Model comparison: Logistic Regression vs Linear SVM
    |-- 4. Best model (Linear SVM) saved and loaded into a Flask app
    |
-   |-- Flask web app: paste a message, get a live prediction
+   |-- Flask web app + Gunicorn, deployed on Render
 ```
 
 ## Tech stack
@@ -24,6 +26,7 @@ Raw message
 - **TF-IDF** for turning text into features
 - **Logistic Regression** and **Linear SVM** (compared, best one kept)
 - **Flask** for the web app, **HTML/CSS/JS** for the interface
+- **Gunicorn** as the production server, deployed on **Render**
 
 ## Dataset
 
@@ -42,7 +45,7 @@ Linear SVM won across every metric. This lines up with how the two algorithms wo
 
 Class imbalance (87% ham, 13% spam) was handled with `class_weight="balanced"` rather than oversampling, so the model could not take the shortcut of just guessing ham most of the time and still scoring well.
 
-## How to run it
+## How to run it locally
 
 1. Clone the repo and set up the environment:
 ```
@@ -50,20 +53,28 @@ Class imbalance (87% ham, 13% spam) was handled with `class_weight="balanced"` r
    venv\Scripts\activate
    pip install -r requirements.txt
 ```
-2. Download the NLTK stopwords data (one time):
-```
-   python -c "import nltk; nltk.download('stopwords')"
-```
-3. Train the model (already trained and saved, run this to reproduce it):
+2. Train the model (already trained and saved, run this to reproduce it):
 ```
    cd src
    python train.py
 ```
-4. Start the web app:
+3. Start the web app:
 ```
    python app.py
 ```
    Then open http://127.0.0.1:5000
+
+Note: `app.py` downloads NLTK's stopwords data automatically on first run, no manual step needed.
+
+## Deployment
+
+Deployed on [Render](https://render.com)'s free tier using Gunicorn as the production WSGI server. The `Procfile` tells Render how to start the app:
+
+```
+web: gunicorn app:app
+```
+
+Render auto-deploys on every push to the `master` branch. The free tier spins the instance down after inactivity, so the first request after idle time can take 20-30 seconds to wake up, a normal trade off of free hosting, not a bug.
 
 ## Project structure
 
@@ -77,6 +88,7 @@ spam-classifier/
 ├── static/style.css       app styling
 ├── templates/index.html   app frontend
 ├── app.py                 Flask app
+├── Procfile               tells Render how to start the app
 └── requirements.txt
 ```
 
@@ -86,12 +98,14 @@ This dataset skews toward SMS style spam (prize scams, premium rate numbers) rat
 
 Building the text cleaner also surfaced two real, worth mentioning issues: stripping punctuation with a blunt delete initially glued words together across removed brackets and periods (fixed by replacing punctuation with a space instead of deleting it), and removing stopwords too aggressively occasionally stripped the "t" out of a split contraction like "don't", turning it into a stopword itself and quietly dropping a negation. Both are small but real examples of how easy it is for text preprocessing to introduce subtle bugs that don't throw errors, they just quietly change your data.
 
+Deploying also surfaced a real ordering bug: `preprocess.py` loads NLTK's stopwords the moment it's imported, so the download call in `app.py` had to run before that import, not after, otherwise the app crashed on a fresh environment that had never downloaded the data before. Worked fine locally purely because the data was already cached from earlier testing, a good reminder that "works on my machine" can hide missing setup steps.
+
 ## What this project demonstrates
 
 - End to end ML pipeline: raw text to a deployed, working prediction interface
 - Comparing multiple models on the same data with proper train/test evaluation, not just picking one and hoping
 - Handling real world data issues: class imbalance, noisy text, preprocessing edge cases
-- Deploying a model behind a usable web interface, not leaving it in a notebook
+- Deploying a model to a live, public production environment, not leaving it in a notebook or on localhost
 
 ## Author
 
