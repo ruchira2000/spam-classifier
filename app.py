@@ -1,11 +1,12 @@
 import pickle
 import sys
+import nltk
+nltk.download("stopwords")
+
 sys.path.insert(0, "src")
 from preprocess import clean_text
 
 from flask import Flask, render_template, request, jsonify
-import nltk
-nltk.download("stopwords")
 
 app = Flask(__name__)
 
